@@ -97,14 +97,14 @@ class GestorPedidos : AppCompatActivity() {
                 )
 
                 // Si el pedido es en efectivo
-                if (pedido.modoDePago == "efectivo") {
+                if (pedido.modoDePago == "Efectivo") {
                     totalEfectivo += pedido.precio
                     totalPedidosEfectivo++
                     pedidosEnEfectivoTexto.append(spannableDetallePedido)
                     pedidosEnEfectivoTexto.append("\n\n")
                 }
                 // Si el pedido es con tarjeta
-                else if (pedido.modoDePago == "tarjeta") {
+                else if (pedido.modoDePago == "Tarjeta") {
                     totalTarjeta += pedido.precio
                     totalPedidosTarjeta++
                     pedidosConTarjetaTexto.append(spannableDetallePedido)
@@ -112,11 +112,11 @@ class GestorPedidos : AppCompatActivity() {
                 }
             } else {
                 // Si el pedido está activo, sumamos a los totales y mostramos en negro (por defecto)
-                if (pedido.modoDePago == "efectivo") {
+                if (pedido.modoDePago == "Efectivo") {
                     totalEfectivo += pedido.precio
                     totalPedidosEfectivo++
                     pedidosEnEfectivoTexto.append(detallePedido).append("\n\n")
-                } else if (pedido.modoDePago == "tarjeta") {
+                } else if (pedido.modoDePago == "Tarjeta") {
                     totalTarjeta += pedido.precio
                     totalPedidosTarjeta++
                     pedidosConTarjetaTexto.append(detallePedido).append("\n\n")

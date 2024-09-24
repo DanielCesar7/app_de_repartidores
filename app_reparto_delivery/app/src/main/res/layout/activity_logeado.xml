@@ -47,27 +47,38 @@
 
         <EditText
             android:id="@+id/etDirrecion"
-            android:layout_width="350dp"
-            android:layout_height="50dp"
+            android:layout_width="348dp"
+            android:layout_height="51dp"
             android:layout_marginTop="10dp"
             android:hint="Direccion"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/title" />
 
-        <Spinner
-            android:id="@+id/spinnerModoDePago"
-            android:layout_width="350dp"
-            android:layout_height="50dp"
+        <TextView
+            android:id="@+id/tvModoDePago"
+            android:layout_width="347dp"
+            android:layout_height="32dp"
+            android:text="Modo de pago"
+            android:textColor="@color/black"
+            android:textSize="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/etDirrecion"
-            android:entries="@array/modos_pago" />
+            app:layout_constraintTop_toBottomOf="@id/etDirrecion" />
+
+        <Spinner
+            android:id="@+id/spinnerModoDePago"
+            android:layout_width="348dp"
+            android:layout_height="53dp"
+            android:entries="@array/modos_pago"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvModoDePago" />
 
         <EditText
             android:id="@+id/etPrecio"
-            android:layout_width="349dp"
-            android:layout_height="53dp"
+            android:layout_width="348dp"
+            android:layout_height="50dp"
             android:hint="Precio"
             android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
@@ -76,7 +87,7 @@
 
         <EditText
             android:id="@+id/etTelefono"
-            android:layout_width="351dp"
+            android:layout_width="348dp"
             android:layout_height="53dp"
             android:hint="Número de teléfono"
             app:layout_constraintEnd_toEndOf="parent"
