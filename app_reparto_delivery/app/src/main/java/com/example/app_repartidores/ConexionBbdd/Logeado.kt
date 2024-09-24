@@ -35,6 +35,7 @@ class Logeado : AppCompatActivity() {
         val centroUsuario = nombreUsuario?.let { dataManager.getCentroUsuario(it) }
         val usuarioID = intent.getIntExtra("usuarioID", -1)
 
+
         if (nombreUsuario != null && centroUsuario != null) {
             textViewData.text = "¡¡Bienvenido, $nombreUsuario!!\nCentro: $centroUsuario"
         }
@@ -86,8 +87,7 @@ class Logeado : AppCompatActivity() {
             // Llamada a la función que agrega el pedido
 
             dataManager.addPedido(usuarioID, direccionText, modoDePagoText, precioText.toDouble(), telefonoText, fechaString)
-            Toast.makeText(this, mensajePrueba, Toast.LENGTH_SHORT).show()
-
+            Toast.makeText(this, "Registro con éxito", Toast.LENGTH_SHORT).show()
 
             // Limpiar los campos después de registrar el pedido
             dirrecion.text.clear()
@@ -101,6 +101,12 @@ class Logeado : AppCompatActivity() {
         val btnEliminar = findViewById<Button>(R.id.btnEliminarPedido)
 
         btnEliminar.setOnClickListener {
+
+            if (dirrecion.text.isNullOrEmpty()) {
+                Toast.makeText(this, "Por favor, introduce una dirección.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             // Obtener los datos del usuario
             val direccionText = dirrecion.text.toString()
             val modoDePagoText = modoDePago.selectedItem.toString()
@@ -116,6 +122,7 @@ class Logeado : AppCompatActivity() {
 
             // Limpiar los campos
             dirrecion.text.clear()
+            modoDePago.setSelection(0)
             precio.text.clear()
             telefono.text.clear()
             //modoDePago.setSelection(0) // Restablecer el Spinner a la primera opción
@@ -124,6 +131,7 @@ class Logeado : AppCompatActivity() {
 
         val btnVer = findViewById<Button>(R.id.btnVerPedido)
         val checkBoxFecha = findViewById<CheckBox>(R.id.chkIncluirFecha)
+        val checkBoxEstado = findViewById<CheckBox>(R.id.checkBoxEstado)
 
         btnVer.setOnClickListener {
 
@@ -158,6 +166,8 @@ class Logeado : AppCompatActivity() {
                 null // Si el campo está vacío, establecer null
             }
 
+            val estado = checkBoxEstado.isChecked
+
             // Crear un Intent para pasar los criterios de filtrado a GestorPedidos
             val intent = Intent(this, GestorPedidos::class.java)
 
@@ -166,6 +176,7 @@ class Logeado : AppCompatActivity() {
             intent.putExtra("modoDePago", modoDePagoText)
             intent.putExtra("fecha", fechaString)
             intent.putExtra("telefono", telefonoText)
+            intent.putExtra("estado", estado) // Pasar el estado
             // Solo pasar el precio si no es null
             if (precioDouble != null) {
                 intent.putExtra("precio", precioDouble)
@@ -174,20 +185,23 @@ class Logeado : AppCompatActivity() {
             intent.putExtra("telefono", telefonoText)
             intent.putExtra("usuarioID", usuarioID) // Pasa el id del usuario
 
+
             // Iniciar la actividad GestorPedidos
             startActivity(intent)
 
-            val verRegistro = """
+            /*val verRegistro = """
                 Dirección: $direccionText
                 Modo de Pago: $modoDePagoText
                 Precio: $precioText
                 Teléfono: $telefonoText
                 Fecha: ${fechaString ?: "No especificada"}
-                """
-            Toast.makeText(this, verRegistro, Toast.LENGTH_SHORT).show()
+                Estado: $estado
+                """*/
+            Toast.makeText(this, "Le has dado al botón ver", Toast.LENGTH_SHORT).show()
 
             // Limpiar los campos
             dirrecion.text.clear()
+            modoDePago.setSelection(0)
             precio.text.clear()
             telefono.text.clear()
         }
@@ -207,6 +221,16 @@ class Logeado : AppCompatActivity() {
             val year = fecha.year
             val fechaString = "$day/$month/$year"
 
+            if (dirrecion.text.isNullOrEmpty()) {
+                Toast.makeText(this, "Por favor, introduce una dirección.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (modoDePagoText.isEmpty()) {
+                Toast.makeText(this, "Por favor, introduce una modo de pago.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             // Llamar a la función addPedido con los valores obtenidos
             if (nombreUsuario != null) {
                 dataManager.editarPedido(usuarioID, direccionText, modoDePagoText, precioText, telefonoText, fechaString)
@@ -219,6 +243,7 @@ class Logeado : AppCompatActivity() {
 
             // Limpiar los campos
             dirrecion.text.clear()
+            modoDePago.setSelection(0)
             precio.text.clear()
             telefono.text.clear()
             //modoDePago.setSelection(0) // Restablecer el Spinner a la primera opción

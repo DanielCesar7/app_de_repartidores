@@ -9,5 +9,6 @@ data class Pedido(
     val modoDePago: String,
     val precio: Double,
     val numeroTelefono: String,
-    val fecha: String
+    val fecha: String,
+    val estado: Int
 ): Serializable

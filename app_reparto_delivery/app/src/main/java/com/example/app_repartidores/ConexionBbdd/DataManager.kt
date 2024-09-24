@@ -81,6 +81,7 @@ class DataManager(context: Context) { // class
             put(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO, numeroTelefono)
             put(DatabaseHelper.COLUMN_FECHA, fecha?.time) // Guardar la fecha como milisegundos
             put(DatabaseHelper.COLUMN_USUARIO_ID, usuarioID) // Guardar el nombre del usuario
+            put(DatabaseHelper.COLUMN_ESTADO, 0)
         }
 
         // Insertar el nuevo pedido en la tabla
@@ -118,9 +119,13 @@ class DataManager(context: Context) { // class
             """
                 val selectionArgs = arrayOf(calle, modoDePago, fechaMillis.toString(), usuarioID.toString())
 
-                // Ejecutar el DELETE en la base de datos
-                val rowsDeleted = db.delete(DatabaseHelper.TABLE_NAME_PEDIDO, selection, selectionArgs)
-                Log.d("EliminarPedido", "Filas eliminadas: $rowsDeleted")
+                // Actualizar el pedido para marcarlo como tachado
+                val values = ContentValues().apply {
+                    put(DatabaseHelper.COLUMN_ESTADO, 1) // Marcamos el pedido como eliminado
+                }
+
+                val rowsUpdated = db.update(DatabaseHelper.TABLE_NAME_PEDIDO, values, selection, selectionArgs)
+                Log.d("EliminarPedido", "Filas actualizadas: $rowsUpdated")
 
                 db.close()
             } catch (e: Exception) {
@@ -137,6 +142,7 @@ class DataManager(context: Context) { // class
         precio: Double? = null,
         telefono: String? = null,
         fechaString: String? = null,
+        estado: Boolean = false // Nuevo parámetro para incluir pedidos tachados
     ): List<Pedido> {
         val db = dbHelper.readableDatabase
         val pedidos = mutableListOf<Pedido>()
@@ -153,6 +159,7 @@ class DataManager(context: Context) { // class
             DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO,
             DatabaseHelper.COLUMN_FECHA,
             DatabaseHelper.COLUMN_USUARIO_ID,
+            DatabaseHelper.COLUMN_ESTADO // Incluimos la columna Estado
         )
 
         // Crear una lista para las condiciones (selection) y los argumentos (selectionArgs)
@@ -165,11 +172,19 @@ class DataManager(context: Context) { // class
             argumentos.add(usuarioID.toString())
         }
 
-
-        // Si se especifica una calle, agregar la condición para buscar por calle (insensible a mayúsculas)
+        // Si se especifica una calle, buscar tanto en pedidos tachados como activos
         if (!calle.isNullOrEmpty()) {
             condiciones.add("LOWER(${DatabaseHelper.COLUMN_CALLE}) LIKE ?")
             argumentos.add("%${calle.toLowerCase()}%")
+        }
+
+        // Condición para buscar solo pedidos activos o solo eliminados
+        if (estado) {
+            // Si estado es true, buscar solo pedidos tachados (eliminados)
+            condiciones.add("${DatabaseHelper.COLUMN_ESTADO} = 1")
+        } else {
+            // Si estado es false, buscar solo pedidos activos
+            condiciones.add("${DatabaseHelper.COLUMN_ESTADO} = 0")
         }
 
         // Si se especifica un modo de pago, agregar la condición para filtrar por el modo de pago
@@ -196,14 +211,12 @@ class DataManager(context: Context) { // class
         if (!fechaString.isNullOrEmpty()) {
             try {
                 val fecha = dateFormat.parse(fechaString)
-
                 if (fecha != null) {
                     val fechaMillis = fecha.time
                     condiciones.add("${DatabaseHelper.COLUMN_FECHA} = ?")
                     argumentos.add(fechaMillis.toString()) // Convertimos la fecha a milisegundos para la búsqueda
                 }
             } catch (e: Exception) {
-                // Manejar el error de conversión de fecha
                 Log.e("verPedidos", "Error parsing fecha: $fechaString", e)
             }
         }
@@ -232,13 +245,14 @@ class DataManager(context: Context) { // class
                 val precioPedido = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PRECIO))
                 val numeroTelefono = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO))
                 val fechaMillis = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_FECHA))
+                val estado = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ESTADO)) // Obtener el estado
 
                 // Convertir la fecha de milisegundos a formato legible
                 val date = Date(fechaMillis)
-                val formattedFecha = dateFormat.format(date) // Aquí usamos dateFormat para formatear
+                val formattedFecha = dateFormat.format(date)
 
                 // Crear un objeto Pedido con los valores obtenidos
-                val pedido = Pedido(idPedido, callePedido, modoDePagoPedido, precioPedido, numeroTelefono, formattedFecha)
+                val pedido = Pedido(idPedido, callePedido, modoDePagoPedido, precioPedido, numeroTelefono, formattedFecha, estado)
                 pedidos.add(pedido)
             } while (cursor.moveToNext())
         }
@@ -249,6 +263,7 @@ class DataManager(context: Context) { // class
 
         return pedidos
     }
+
 
     fun editarPedido(
         usuarioID: Int,  // Usuario propietario del pedido

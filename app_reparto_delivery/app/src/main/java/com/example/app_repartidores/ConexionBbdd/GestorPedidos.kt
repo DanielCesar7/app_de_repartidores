@@ -2,8 +2,14 @@ package com.example.app_repartidores.ConexionBbdd
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
+import android.text.style.StrikethroughSpan
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -31,7 +37,6 @@ class GestorPedidos : AppCompatActivity() {
         val pedidoTotal = findViewById<TextView>(R.id.NumeroTotalPedidos)
         val dineroTotal = findViewById<TextView>(R.id.NumeroTotalDinero)
 
-
         // Inicializar el DataManager
         val dataManager = DataManager(this)
 
@@ -40,7 +45,6 @@ class GestorPedidos : AppCompatActivity() {
         var totalTarjeta = 0.0
         var totalPedidosEfectivo = 0
         var totalPedidosTarjeta = 0
-
 
         // Recuperar el nombre del usuario desde el Intent
         val usuarioID = intent.getIntExtra("usuarioID", -1)
@@ -51,18 +55,19 @@ class GestorPedidos : AppCompatActivity() {
         val precio = intent.getSerializableExtra("precio") as? Double
         val telefono = intent.getStringExtra("telefono")
         val fecha = intent.getStringExtra("fecha")
+        val estado = intent.getBooleanExtra("estado", false) // Filtro de estado
 
         // Recuperar pedidos filtrados desde la base de datos
         val pedidosFiltrados = dataManager.verPedidos(
-            usuarioID, direccion, modoDePago, precio, telefono, fecha
+            usuarioID, direccion, modoDePago, precio, telefono, fecha, estado
         )
 
-        // Inicializar los textos para mostrar los pedidos
-        val pedidosEnEfectivoTexto = StringBuilder()
-        val pedidosConTarjetaTexto = StringBuilder()
+        val pedidosEnEfectivoTexto = SpannableStringBuilder()
+        val pedidosConTarjetaTexto = SpannableStringBuilder()
 
         // Formato de fecha
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
 
         // Mostrar los pedidos filtrados
         for (pedido in pedidosFiltrados) {
@@ -79,21 +84,49 @@ class GestorPedidos : AppCompatActivity() {
             Fecha: $fechaFormateada
             """.trimIndent()
 
-            // Clasificar los pedidos por modo de pago
-            if (pedido.modoDePago == "efectivo") {
-                totalEfectivo += pedido.precio
-                totalPedidosEfectivo++
-                pedidosEnEfectivoTexto.append(detallePedido).append("\n\n")
-            } else if (pedido.modoDePago == "tarjeta") {
-                totalTarjeta += pedido.precio
-                totalPedidosTarjeta++
-                pedidosConTarjetaTexto.append(detallePedido).append("\n\n")
+            // Verificar si el pedido está eliminado o activo
+            if (pedido.estado == 1) {
+                // Crear SpannableString para el texto del pedido
+                val spannableDetallePedido = SpannableString(detallePedido)
+
+                // Aplicar el color rojo al texto del pedido eliminado
+                spannableDetallePedido.setSpan(
+                    ForegroundColorSpan(Color.rgb(255, 0, 0)), // Rojo fuerte
+                    0, detallePedido.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+
+                // Si el pedido es en efectivo
+                if (pedido.modoDePago == "efectivo") {
+                    totalEfectivo += pedido.precio
+                    totalPedidosEfectivo++
+                    pedidosEnEfectivoTexto.append(spannableDetallePedido)
+                    pedidosEnEfectivoTexto.append("\n\n")
+                }
+                // Si el pedido es con tarjeta
+                else if (pedido.modoDePago == "tarjeta") {
+                    totalTarjeta += pedido.precio
+                    totalPedidosTarjeta++
+                    pedidosConTarjetaTexto.append(spannableDetallePedido)
+                    pedidosConTarjetaTexto.append("\n\n")
+                }
+            } else {
+                // Si el pedido está activo, sumamos a los totales y mostramos en negro (por defecto)
+                if (pedido.modoDePago == "efectivo") {
+                    totalEfectivo += pedido.precio
+                    totalPedidosEfectivo++
+                    pedidosEnEfectivoTexto.append(detallePedido).append("\n\n")
+                } else if (pedido.modoDePago == "tarjeta") {
+                    totalTarjeta += pedido.precio
+                    totalPedidosTarjeta++
+                    pedidosConTarjetaTexto.append(detallePedido).append("\n\n")
+                }
             }
         }
 
         // Mostrar los pedidos en los TextViews correspondientes
-        pedidosEnEfectivo.text = pedidosEnEfectivoTexto.toString()
-        pedidosConTarjeta.text = pedidosConTarjetaTexto.toString()
+        pedidosEnEfectivo.text = pedidosEnEfectivoTexto
+        pedidosConTarjeta.text = pedidosConTarjetaTexto
 
         // Redondear los totales de efectivo y tarjeta a dos decimales
         val totalEfectivoRedondeado = String.format("%.2f", totalEfectivo)
@@ -118,10 +151,12 @@ class GestorPedidos : AppCompatActivity() {
         val botonPrueba = findViewById<Button>(R.id.btnPrueba)
 
         botonPrueba.setOnClickListener {
-
-            }
+            // Acciones del botón, si es necesario
         }
+    }
 }
+
+
 
 
 

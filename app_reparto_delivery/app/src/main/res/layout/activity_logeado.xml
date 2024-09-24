@@ -93,71 +93,85 @@
             android:layout_marginEnd="8dp"
             android:calendarViewShown="false"
             android:datePickerMode="spinner"
-            app:layout_constraintEnd_toStartOf="@id/chkIncluirFecha"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/etTelefono"
             app:layout_constraintWidth_default="wrap" />
 
+
         <CheckBox
             android:id="@+id/chkIncluirFecha"
-            android:layout_width="106dp"
-            android:layout_height="112dp"
-            android:layout_marginStart="8dp"
-            android:text="Desactivar fecha\n (solo funciona para el boton ver)"
-            app:layout_constraintBottom_toBottomOf="@id/datePicker"
+            android:layout_width="139dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="8dp"
+            android:text="Desactivar fecha"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/datePicker"
+            tools:ignore="TouchTargetSizeCheck" />
+
+        <CheckBox
+            android:id="@+id/checkBoxEstado"
+            android:layout_width="146dp"
+            android:layout_height="37dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="36dp"
+            android:text="Activar pedido eliminado"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="1.0"
-            app:layout_constraintStart_toEndOf="@id/datePicker"
-            app:layout_constraintTop_toTopOf="@id/datePicker"
-            app:layout_constraintVertical_bias="0.482" />
+            app:layout_constraintTop_toBottomOf="@id/datePicker"
+            tools:ignore="TouchTargetSizeCheck" />
 
         <Button
             android:id="@+id/btnRegistro"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="164dp"
+            android:layout_marginTop="200dp"
             android:text="Registro"
             android:textSize="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.133"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/etTelefono" />
+            app:layout_constraintTop_toBottomOf="@+id/etTelefono"
+            tools:ignore="TextSizeCheck" />
 
         <Button
             android:id="@+id/btnEliminarPedido"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="164dp"
+            android:layout_marginTop="200dp"
             android:text="Eliminar"
             android:textSize="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.405"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/etTelefono" />
+            app:layout_constraintTop_toBottomOf="@+id/etTelefono"
+            tools:ignore="TextSizeCheck" />
 
         <Button
             android:id="@+id/btnVerPedido"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="164dp"
+            android:layout_marginTop="200dp"
             android:text="Ver"
             android:textSize="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.678"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/etTelefono" />
+            app:layout_constraintTop_toBottomOf="@+id/etTelefono"
+            tools:ignore="TextSizeCheck" />
 
         <Button
             android:id="@+id/btnModificar"
             android:layout_width="72dp"
             android:layout_height="48dp"
-            android:layout_marginTop="164dp"
+            android:layout_marginTop="200dp"
             android:text="Editar"
             android:textSize="10dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.914"
+            app:layout_constraintHorizontal_bias="0.905"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/etTelefono" />
+            app:layout_constraintTop_toBottomOf="@+id/etTelefono"
+            tools:ignore="TextSizeCheck" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
