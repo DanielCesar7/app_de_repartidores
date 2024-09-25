@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Delivery Ease</string>
+    <string name="registro_de_nuevo_usuario">Registro de nuevo usuario</string>
+    <string-array name="modos_pago">
+        <item></item>
+        <item>Efectivo</item>
+        <item>Tarjeta</item>
+    </string-array>
+</resources>
