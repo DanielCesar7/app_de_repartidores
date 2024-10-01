@@ -66,13 +66,18 @@ class DataManager(context: Context) { // class
         return data.toString()
     }
 
-    fun addPedido(usuarioID: Int, calle: String, modoDePago: String, precio: Double, numeroTelefono: String, fechaString: String) {
+    fun addPedido(usuarioID: Int, calle: String, modoDePago: String, precio: Double, numeroTelefono: String, fechaString: String, contenidoPedido: String, propina: Double?) {
 
         val db = dbHelper.writableDatabase
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
         // Convertir la cadena de fecha a Date
         val fecha = dateFormat.parse(fechaString)
+
+        // Validar que el precio sea mayor a 0
+        if (precio <= 0) {
+            throw IllegalArgumentException("El precio debe ser mayor a cero")
+        }
 
         val values = ContentValues().apply {
             put(DatabaseHelper.COLUMN_CALLE, calle)
@@ -82,6 +87,12 @@ class DataManager(context: Context) { // class
             put(DatabaseHelper.COLUMN_FECHA, fecha?.time) // Guardar la fecha como milisegundos
             put(DatabaseHelper.COLUMN_USUARIO_ID, usuarioID) // Guardar el nombre del usuario
             put(DatabaseHelper.COLUMN_ESTADO, 0)
+            put(DatabaseHelper.COLUMN_CONTENIDO_PEDIDO, contenidoPedido)
+
+            // Añadir propina solo si no es null o mayor que 0
+            if (propina != null && propina > 0) {
+                put(DatabaseHelper.COLUMN_PROPINA, propina)
+            }
         }
 
         // Insertar el nuevo pedido en la tabla
@@ -89,8 +100,27 @@ class DataManager(context: Context) { // class
         db.close()
     }
 
+    fun normalizarCalle(calle: String): String {
+        return calle
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("Á", "a")
+            .replace("É", "e")
+            .replace("Í", "i")
+            .replace("Ó", "o")
+            .replace("Ú", "u")
+            .replace("[.-]".toRegex(), " ")  // Reemplaza '.' y '-' por espacios
+            .replace("\\s+".toRegex(), " ")  // Reemplaza múltiples espacios por uno solo
+            .trim()                          // Elimina espacios en blanco al inicio y al final
+            .lowercase(Locale.getDefault())  // Convertir a minúsculas
+    }
+
+    @SuppressLint("Range")
     fun eliminarPedido(
-        usuarioID: Int, // Agregamos el nombre del usuario
+        usuarioID: Int,
         calle: String,
         modoDePago: String,
         fechaString: String
@@ -107,33 +137,77 @@ class DataManager(context: Context) { // class
                 // Convertir la fecha a milisegundos (como está almacenada en la base de datos)
                 val fechaMillis = fecha?.time
 
-                // Verificar si se han obtenido bien las variables
-                Log.d("EliminarPedido", "Calle: $calle, ModoDePago: $modoDePago, FechaMillis: $fechaMillis, Usuario: $usuarioID")
+                // Normalizar la calle: eliminamos puntos y guiones y convertimos a minúsculas
+                val calleNormalizada = normalizarCalle(calle)
 
-                // Definir la condición para la eliminación (WHERE)
-                val selection = """
-                ${DatabaseHelper.COLUMN_CALLE} = ? AND 
+                // Verificar si se han obtenido bien las variables
+                Log.d("EliminarPedido", "Calle normalizada: $calleNormalizada, ModoDePago: $modoDePago, FechaMillis: $fechaMillis, Usuario: $usuarioID")
+
+                // Consultar los pedidos que coinciden con los criterios
+                val query = """
+                SELECT ${DatabaseHelper.COLUMN_ID_PEDIDO}, ${DatabaseHelper.COLUMN_ESTADO}
+                FROM ${DatabaseHelper.TABLE_NAME_PEDIDO}
+                WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, 'á', 'a'),'é', 'e'),'í', 'i'),'ó', 'o'),'ú', 'u'),'.', ' '),'-', ' ')) = ? AND
                 ${DatabaseHelper.COLUMN_MODO_DE_PAGO} = ? AND 
                 ${DatabaseHelper.COLUMN_FECHA} = ? AND 
                 ${DatabaseHelper.COLUMN_USUARIO_ID} = ?
-            """
-                val selectionArgs = arrayOf(calle, modoDePago, fechaMillis.toString(), usuarioID.toString())
+                """
 
-                // Actualizar el pedido para marcarlo como tachado
-                val values = ContentValues().apply {
-                    put(DatabaseHelper.COLUMN_ESTADO, 1) // Marcamos el pedido como eliminado
+                val cursor = db.rawQuery(query, arrayOf(calleNormalizada, modoDePago, fechaMillis.toString(), usuarioID.toString()))
+
+                // Obtener todos los pedidos que coinciden
+                val pedidosDuplicados = mutableListOf<Int>()
+                var pedidosActivos = 0 // Contamos los pedidos que aún no han sido eliminados
+                while (cursor.moveToNext()) {
+                    val pedidoId = cursor.getInt(cursor.getColumnIndex(DatabaseHelper.COLUMN_ID_PEDIDO))
+                    val estado = cursor.getInt(cursor.getColumnIndex(DatabaseHelper.COLUMN_ESTADO))
+
+                    if (estado == 0) {
+                        pedidosActivos++ // Contamos solo los pedidos activos (no eliminados)
+                        pedidosDuplicados.add(pedidoId)
+                    }
                 }
 
-                val rowsUpdated = db.update(DatabaseHelper.TABLE_NAME_PEDIDO, values, selection, selectionArgs)
-                Log.d("EliminarPedido", "Filas actualizadas: $rowsUpdated")
+                // Si hay más de un pedido activo, eliminamos todos excepto uno
+                if (pedidosActivos > 1) {
+                    for (i in 1 until pedidosActivos) {
+                        val pedidoId = pedidosDuplicados[i] // Empezamos desde el segundo pedido
+                        val values = ContentValues().apply {
+                            put(DatabaseHelper.COLUMN_ESTADO, 1) // Marcamos el pedido como eliminado
+                        }
+                        db.update(
+                            DatabaseHelper.TABLE_NAME_PEDIDO,
+                            values,
+                            "${DatabaseHelper.COLUMN_ID_PEDIDO} = ?",
+                            arrayOf(pedidoId.toString())
+                        )
+                    }
+                    Log.d("EliminarPedido", "Se eliminaron ${pedidosActivos - 1} pedidos repetidos, 1 fue conservado")
+                }
+                // Si solo hay un pedido activo, se eliminará si se vuelve a ejecutar
+                else if (pedidosActivos == 1) {
+                    val pedidoId = pedidosDuplicados[0]
+                    val values = ContentValues().apply {
+                        put(DatabaseHelper.COLUMN_ESTADO, 1) // Marcamos el pedido como eliminado
+                    }
+                    db.update(
+                        DatabaseHelper.TABLE_NAME_PEDIDO,
+                        values,
+                        "${DatabaseHelper.COLUMN_ID_PEDIDO} = ?",
+                        arrayOf(pedidoId.toString())
+                    )
+                    Log.d("EliminarPedido", "El último pedido activo ha sido eliminado")
+                }
 
+                cursor.close()
                 db.close()
             } catch (e: Exception) {
                 // Loggear cualquier error
-                Log.e("EliminarPedido", "Error eliminando el pedido", e)
+                Log.e("EliminarPedido", "Error eliminando pedidos", e)
             }
         }.start()
     }
+
 
     fun verPedidos(
         usuarioID: Int?,
@@ -142,7 +216,9 @@ class DataManager(context: Context) { // class
         precio: Double? = null,
         telefono: String? = null,
         fechaString: String? = null,
-        estado: Boolean = false // Nuevo parámetro para incluir pedidos tachados
+        estado: Boolean = false, // Nuevo parámetro para incluir pedidos tachados
+        propina: Double? = null,
+        contenidoPedido: String? = null
     ): List<Pedido> {
         val db = dbHelper.readableDatabase
         val pedidos = mutableListOf<Pedido>()
@@ -159,7 +235,9 @@ class DataManager(context: Context) { // class
             DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO,
             DatabaseHelper.COLUMN_FECHA,
             DatabaseHelper.COLUMN_USUARIO_ID,
-            DatabaseHelper.COLUMN_ESTADO // Incluimos la columna Estado
+            DatabaseHelper.COLUMN_ESTADO, // Incluimos la columna Estado
+            DatabaseHelper.COLUMN_CONTENIDO_PEDIDO,
+            DatabaseHelper.COLUMN_PROPINA
         )
 
         // Crear una lista para las condiciones (selection) y los argumentos (selectionArgs)
@@ -174,8 +252,16 @@ class DataManager(context: Context) { // class
 
         // Si se especifica una calle, buscar tanto en pedidos tachados como activos
         if (!calle.isNullOrEmpty()) {
-            condiciones.add("LOWER(${DatabaseHelper.COLUMN_CALLE}) LIKE ?")
-            argumentos.add("%${calle.toLowerCase()}%")
+            // Eliminar tildes y convertir a minúsculas
+            val calleSinTildes = normalizarCalle(calle)
+
+            // En la consulta SQL, también eliminar tildes y convertir a minúsculas
+            condiciones.add("""
+            LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), '.', ' '), '-', ' ')) LIKE ?
+        """.trimIndent())
+
+            // Agregar la calle sin tildes como argumento de búsqueda
+            argumentos.add("%$calleSinTildes%")
         }
 
         // Condición para buscar solo pedidos activos o solo eliminados
@@ -221,6 +307,20 @@ class DataManager(context: Context) { // class
             }
         }
 
+        // Si se especifica contenidoPedido, agregar la condición para filtrar por contenido
+       /* if (!contenidoPedido.isNullOrEmpty()) {
+            condiciones.add("LOWER(${DatabaseHelper.COLUMN_CONTENIDO_PEDIDO}) LIKE ?")
+            argumentos.add("%${contenidoPedido.toLowerCase()}%")
+        }
+
+        // Si se especifica propina, agregar la condición para filtrar por la propina con una tolerancia
+        if (propina != null) {
+            val tolerancia = 0.01
+            condiciones.add("${DatabaseHelper.COLUMN_PROPINA} BETWEEN ? AND ?")
+            argumentos.add((propina - tolerancia).toString())
+            argumentos.add((propina + tolerancia).toString())
+        }*/
+
         // Crear la consulta condicional
         val selection = if (condiciones.isNotEmpty()) condiciones.joinToString(" AND ") else null
         val selectionArgs = if (argumentos.isNotEmpty()) argumentos.toTypedArray() else null
@@ -246,13 +346,16 @@ class DataManager(context: Context) { // class
                 val numeroTelefono = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO))
                 val fechaMillis = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_FECHA))
                 val estado = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ESTADO)) // Obtener el estado
+                val contenidoPedido = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_CONTENIDO_PEDIDO)) ?: "Sin contenido"
+                val propina = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROPINA)) ?: 0.0
 
                 // Convertir la fecha de milisegundos a formato legible
                 val date = Date(fechaMillis)
                 val formattedFecha = dateFormat.format(date)
 
                 // Crear un objeto Pedido con los valores obtenidos
-                val pedido = Pedido(idPedido, callePedido, modoDePagoPedido, precioPedido, numeroTelefono, formattedFecha, estado)
+                val pedido = Pedido(idPedido, callePedido, modoDePagoPedido, precioPedido, numeroTelefono, formattedFecha, estado,
+                    contenidoPedido, propina)
                 pedidos.add(pedido)
             } while (cursor.moveToNext())
         }
@@ -264,83 +367,89 @@ class DataManager(context: Context) { // class
         return pedidos
     }
 
-
     fun editarPedido(
-        usuarioID: Int,  // Usuario propietario del pedido
-        calle: String,   // Calle donde se realizó el pedido
-        modoDePago: String,  // Modo de pago utilizado para identificar el pedido
-        nuevoPrecio: Double?,  // Puede ser null
-        nuevoNumeroTelefono: String?,  // Puede ser null
-        nuevaFechaString: String?  // Puede ser null, la nueva fecha en formato de cadena
+        usuarioID: Int,
+        calle: String,
+        modoDePago: String,
+        nuevoPrecio: Double?,
+        nuevoNumeroTelefono: String?,
+        nuevaFechaString: String?,
+        nuevoContenidoPedido: String?,
+        nuevaPropina: Double?
     ): Boolean {
         val db = dbHelper.writableDatabase
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-        // Normalizar el valor de la calle (eliminando guiones, puntos, y haciendo insensible a mayúsculas)
-        fun normalizarCalle(calle: String): String {
-            return calle
-                .toLowerCase()  // Convertir a minúsculas
-                .replace(Regex("[\\s.-]"), "")  // Eliminar espacios, puntos, y guiones
-        }
+        return try {
+            // Normalizar la calle proporcionada
+            val calleNormalizada = normalizarCalle(calle)
 
-        // Normalizar la calle proporcionada
-        val calleNormalizada = normalizarCalle(calle)
+            val query = """
+            SELECT ${DatabaseHelper.COLUMN_PRECIO}, 
+                   ${DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO}, 
+                   ${DatabaseHelper.COLUMN_FECHA}, 
+                   ${DatabaseHelper.COLUMN_CONTENIDO_PEDIDO}, 
+                   ${DatabaseHelper.COLUMN_PROPINA}
+            FROM ${DatabaseHelper.TABLE_NAME_PEDIDO}
+            WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), '-', ' '), '.', ' ')) = ? 
+            AND ${DatabaseHelper.COLUMN_MODO_DE_PAGO} = ? 
+            AND ${DatabaseHelper.COLUMN_USUARIO_ID} = ?
+        """
 
-        // Primero, obtenemos los valores actuales del pedido para el usuario y con la combinación de calle y modo de pago
-        val cursor = db.query(
-            DatabaseHelper.TABLE_NAME_PEDIDO,
-            arrayOf(DatabaseHelper.COLUMN_PRECIO, DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO, DatabaseHelper.COLUMN_FECHA),
-            "LOWER(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, ' ', ''), '.', ''), '-', '')) = ? AND ${DatabaseHelper.COLUMN_MODO_DE_PAGO} = ? AND ${DatabaseHelper.COLUMN_USUARIO_ID} = ?",
-            arrayOf(calleNormalizada, modoDePago, usuarioID.toString()),
-            null, null, null
-        )
+            // Primero, obtenemos los valores actuales del pedido para el usuario y con la combinación de calle y modo de pago
+            val cursor = db.rawQuery(query, arrayOf(calleNormalizada, modoDePago, usuarioID.toString()))
 
-        if (cursor.moveToFirst()) {
-            // Obtener los valores actuales de la base de datos
-            val precioActual = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PRECIO))
-            val numeroTelefonoActual = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO))
-            val fechaActual = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_FECHA)) // Guardado como milisegundos
+            if (cursor.moveToFirst()) {
+                val precioActual = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PRECIO))
+                val numeroTelefonoActual = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO))
+                val fechaActual = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_FECHA))
+                val contenidoPedidoActual = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_CONTENIDO_PEDIDO))
+                val propinaActual = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROPINA))
 
-            // Verificar que el nuevo número de teléfono no sea nulo o vacío
-            val numeroTelefonoFinal = if (!nuevoNumeroTelefono.isNullOrBlank()) nuevoNumeroTelefono else numeroTelefonoActual
+                // Verificar los valores nulos
+                val numeroTelefonoFinal = nuevoNumeroTelefono.takeUnless { it.isNullOrBlank() } ?: numeroTelefonoActual
+                val precioFinal = nuevoPrecio.takeUnless { it == null || it == 0.0 } ?: precioActual
+                val contenidoPedidoFinal = nuevoContenidoPedido.takeUnless { it.isNullOrBlank() } ?: contenidoPedidoActual
+                val propinaFinal = nuevaPropina ?: propinaActual
 
-            // Verificar que el nuevo precio no sea nulo o 0.0; si lo es, usar el precio actual
-            val precioFinal = if (nuevoPrecio != null && nuevoPrecio != 0.0) nuevoPrecio else precioActual
-
-            // Verificar y parsear la nueva fecha, si no es válida, mantener la fecha actual
-            val fechaFinal: Long = if (!nuevaFechaString.isNullOrBlank()) {
-                try {
-                    val nuevaFecha = dateFormat.parse(nuevaFechaString)
-                    nuevaFecha?.time ?: fechaActual // Si la fecha es nula, usar la fecha actual
+                val fechaFinal = try {
+                    nuevaFechaString?.let { dateFormat.parse(it)?.time } ?: fechaActual
                 } catch (e: ParseException) {
-                    fechaActual // Si no se puede parsear, usar la fecha actual
+                    fechaActual
                 }
+
+                val values = ContentValues().apply {
+                    put(DatabaseHelper.COLUMN_PRECIO, precioFinal)
+                    put(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO, numeroTelefonoFinal)
+                    put(DatabaseHelper.COLUMN_FECHA, fechaFinal)
+                    put(DatabaseHelper.COLUMN_PROPINA, propinaFinal)
+                    put(DatabaseHelper.COLUMN_CONTENIDO_PEDIDO, contenidoPedidoFinal)
+                }
+
+                val rowsAffected = db.update(
+                    DatabaseHelper.TABLE_NAME_PEDIDO,
+                    values,
+                    """
+                LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), '-', ' '), '.', ' ')) = ? 
+                AND ${DatabaseHelper.COLUMN_MODO_DE_PAGO} = ? 
+                AND ${DatabaseHelper.COLUMN_FECHA} = ? 
+                AND ${DatabaseHelper.COLUMN_USUARIO_ID} = ?
+                """,
+                    arrayOf(calleNormalizada, modoDePago, fechaFinal.toString() ,usuarioID.toString())
+                )
+
+                cursor.close()
+                db.close()
+
+                rowsAffected > 0 // Retorna true si se actualizaron filas
             } else {
-                fechaActual // Si no se proporcionó una nueva fecha, mantener la actual
+                cursor.close()
+                db.close()
+                false // No se encontró ningún pedido que coincida
             }
-
-            // Crear un objeto ContentValues para almacenar los nuevos valores o mantener los actuales
-            val values = ContentValues().apply {
-                put(DatabaseHelper.COLUMN_PRECIO, precioFinal)  // Usar el nuevo precio si no es nulo y no es 0.0, o el valor actual
-                put(DatabaseHelper.COLUMN_NUMERO_DE_TELEFONO, numeroTelefonoFinal)  // Usar el nuevo teléfono o mantener el actual si está vacío
-                put(DatabaseHelper.COLUMN_FECHA, fechaFinal)  // Usar la nueva fecha o mantener la actual
-            }
-
-            // Actualizar el pedido usando la calle normalizada, modo de pago y usuarioID
-            val rowsAffected = db.update(
-                DatabaseHelper.TABLE_NAME_PEDIDO,
-                values,
-                "LOWER(REPLACE(REPLACE(REPLACE(${DatabaseHelper.COLUMN_CALLE}, ' ', ''), '.', ''), '-', '')) = ? AND ${DatabaseHelper.COLUMN_MODO_DE_PAGO} = ? AND ${DatabaseHelper.COLUMN_USUARIO_ID} = ?",
-                arrayOf(calleNormalizada, modoDePago, usuarioID.toString())  // Usamos la calle, modo de pago, y usuarioID como criterios de búsqueda
-            )
-
-            cursor.close()  // Cerrar el cursor
-            db.close()  // Cerrar la base de datos
-            return rowsAffected > 0 // Retorna true si se actualizaron filas, false si no
-        } else {
-            cursor.close()  // Cerrar el cursor si no se encontraron resultados
-            db.close()  // Cerrar la base de datos
-            return false  // No se encontró ningún pedido que coincida
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false // Retorna false si ocurrió una excepción
         }
     }
 

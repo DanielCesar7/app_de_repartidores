@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 4
         private const val DATABASE_NAME = "DeeliveryEaseeeee.db"
 
         const val TABLE_NAME = "usuario"
@@ -28,6 +28,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COLUMN_FECHA = "Fecha"
         const val COLUMN_USUARIO_ID = "UsuarioID"
         const val COLUMN_ESTADO = "Estado"
+        const val COLUMN_PROPINA = "Propina"
+        const val COLUMN_CONTENIDO_PEDIDO = "ContenidoPedido"
 
     } // co
 
@@ -41,8 +43,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val CREATE_TABLE_PEDIDO = "CREATE TABLE $TABLE_NAME_PEDIDO" +
                 "($COLUMN_ID_PEDIDO INTEGER PRIMARY KEY, $COLUMN_CALLE TEXT, $COLUMN_MODO_DE_PAGO TEXT," +
                 " $COLUMN_PRECIO DOUBLE, $COLUMN_NUMERO_DE_TELEFONO TEXT, $COLUMN_FECHA DATE," +
-                " $COLUMN_USUARIO_ID INTEGER, $COLUMN_ESTADO  DEFAULT 0," +
-                "FOREIGN KEY($COLUMN_USUARIO_ID) REFERENCES $TABLE_NAME($COLUMN_ID))"  // Relacionar con la tabla usuario
+                " $COLUMN_USUARIO_ID INTEGER, $COLUMN_ESTADO  DEFAULT 0, $COLUMN_PROPINA DOUBLE,"+
+                " $COLUMN_CONTENIDO_PEDIDO TEXT,"+
+                " FOREIGN KEY($COLUMN_USUARIO_ID) REFERENCES $TABLE_NAME($COLUMN_ID))"  // Relacionar con la tabla usuario
         db.execSQL(CREATE_TABLE_PEDIDO)
     }
 
@@ -54,6 +57,32 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                 db.execSQL("ALTER TABLE $TABLE_NAME_PEDIDO ADD COLUMN $COLUMN_ESTADO INTEGER DEFAULT 0")
             } catch (e: Exception) {
                 e.printStackTrace() // Si la columna ya existe o si hay algún error, manejar la excepción
+            }
+        }
+        if (oldVersion < 3) {
+            // Añadir la columna Propina a la tabla pedido
+            try {
+                db.execSQL("ALTER TABLE $TABLE_NAME_PEDIDO ADD COLUMN $COLUMN_PROPINA DOUBLE DEFAULT 0")
+            } catch (e: Exception) {
+                e.printStackTrace() // Manejar la excepción si hay un error
+            }
+
+            // Añadir la columna ContenidoPedido a la tabla pedido
+            try {
+                db.execSQL("ALTER TABLE $TABLE_NAME_PEDIDO ADD COLUMN $COLUMN_CONTENIDO_PEDIDO TEXT")
+            } catch (e: Exception) {
+                e.printStackTrace() // Manejar la excepción si hay un error
+            }
+        }
+
+            // Esta es la nueva sección para la actualización de los valores NULL
+        if (oldVersion < 4) {
+            try {
+                // Actualizamos los valores NULL solo si la versión es menor a 4
+                db.execSQL("UPDATE $TABLE_NAME_PEDIDO SET $COLUMN_PROPINA = 0 WHERE $COLUMN_PROPINA IS NULL")
+                db.execSQL("UPDATE $TABLE_NAME_PEDIDO SET $COLUMN_CONTENIDO_PEDIDO = 'Sin contenido' WHERE $COLUMN_CONTENIDO_PEDIDO IS NULL")
+            } catch (e: Exception) {
+                e.printStackTrace() // Manejar la excepción si hay un error durante la actualización
             }
         }
     }
