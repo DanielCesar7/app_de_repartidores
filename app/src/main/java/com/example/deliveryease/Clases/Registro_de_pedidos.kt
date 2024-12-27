@@ -1,4 +1,4 @@
-package com.example.deliveryease.ConexionBbdd
+package com.example.deliveryease.Clases
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -12,11 +12,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import com.example.deliveryease.ConexionBbdd.DataManager
 
 import com.example.deliveryease.R
 import java.util.Calendar
 
-class Logeado : AppCompatActivity() {
+class Registro_de_pedidos : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -1,4 +1,4 @@
-package com.example.deliveryease.ConexionBbdd
+package com.example.deliveryease.Clases
 
 import android.content.ContentValues
 import android.content.Context
@@ -10,9 +10,10 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import com.example.deliveryease.ConexionBbdd.DataManager
 import com.example.deliveryease.R
 
-class Registro : AppCompatActivity() {
+class Creacion_De_Nuevo_Usuario : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +58,7 @@ class Registro : AppCompatActivity() {
                 etCorreo.text.clear() // Corrección aquí
                 etCentro.text.clear()
 
-                val intent = Intent(this, com.example.deliveryease.Menu::class.java)
+                val intent = Intent(this, com.example.deliveryease.Principal::class.java)
                 startActivity(intent)
                 Toast.makeText(this, "¡Registro del nuevo usuario hecho correctamente!", Toast.LENGTH_SHORT).show()
                 Log.d(ContentValues.TAG, "Botón registro funcionando correctamente")
@@ -66,7 +67,7 @@ class Registro : AppCompatActivity() {
 
         btnVerDatos.setOnClickListener {
 
-            val intent = Intent(this, Mostrar_Registro::class.java)
+            val intent = Intent(this, Mostrar_Registro_Y_Exportacion_E_Importacion_De_Datos::class.java)
             startActivity(intent)
             Toast.makeText(this, "¡Has ido a la página para comprobar tu registro!", Toast.LENGTH_SHORT).show()
             Log.d(ContentValues.TAG, "Botón ver datos funcionando correctamente")

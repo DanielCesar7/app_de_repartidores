@@ -1,4 +1,4 @@
-package com.example.deliveryease.ConexionBbdd
+package com.example.deliveryease.Clases
 
 import android.annotation.SuppressLint
 import android.graphics.Color
@@ -12,6 +12,8 @@ import android.text.style.StyleSpan
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.deliveryease.ConexionBbdd.CustomZoomScrollView
+import com.example.deliveryease.ConexionBbdd.DataManager
 import com.example.deliveryease.R
 import java.text.SimpleDateFormat
 import java.util.Date

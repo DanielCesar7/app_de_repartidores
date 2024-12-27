@@ -1,4 +1,4 @@
-package com.example.deliveryease.ConexionBbdd
+package com.example.deliveryease.Clases
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
@@ -10,9 +10,11 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.deliveryease.ConexionBbdd.DataManager
+import com.example.deliveryease.ConexionBbdd.DataTransferManager
 import com.example.deliveryease.R
 
-class Mostrar_Registro : AppCompatActivity() {
+class Mostrar_Registro_Y_Exportacion_E_Importacion_De_Datos : AppCompatActivity() {
 
     private val REQUEST_WRITE_STORAGE = 112
 

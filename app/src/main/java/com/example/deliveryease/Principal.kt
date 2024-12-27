@@ -10,10 +10,10 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.example.deliveryease.ConexionBbdd.DataManager
-import com.example.deliveryease.ConexionBbdd.Logeado
-import com.example.deliveryease.ConexionBbdd.Registro
+import com.example.deliveryease.Clases.Registro_de_pedidos
+import com.example.deliveryease.Clases.Creacion_De_Nuevo_Usuario
 
-class Menu : AppCompatActivity() {
+class Principal : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -24,7 +24,7 @@ class Menu : AppCompatActivity() {
         val btnCreacionUsuario = findViewById<Button>(R.id.btnCreacionUsuario)
 
         btnCreacionUsuario.setOnClickListener {
-            val intent = Intent(this, Registro::class.java)
+            val intent = Intent(this, Creacion_De_Nuevo_Usuario::class.java)
             startActivity(intent)
             Toast.makeText(this, "¡Le has dado al botón nuevo usuario!", Toast.LENGTH_SHORT).show()
             Log.d(ContentValues.TAG, "Botón nuevo usuario funcionando correctamente");
@@ -53,7 +53,7 @@ class Menu : AppCompatActivity() {
 
                     val usuarioID = dataManager.getUsuarioID(nombre)
 
-                    val intent = Intent(this, Logeado::class.java)
+                    val intent = Intent(this, Registro_de_pedidos::class.java)
                     intent.putExtra("nombreUsuario", nombre)
                     intent.putExtra("centroUsuario", centroUsuario)
                     intent.putExtra("usuarioID", usuarioID)

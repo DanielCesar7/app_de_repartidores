@@ -14,7 +14,7 @@
             android:id="@+id/main"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            tools:context=".ConexionBbdd.GestorPedidos"
+            tools:context=".Clases.GestorPedidos"
             tools:ignore="MissingClass">
 
             <!-- Título "Pedidos entregados" a la izquierda -->
